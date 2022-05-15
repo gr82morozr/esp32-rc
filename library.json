@@ -1,0 +1,33 @@
+{
+  "name": "esp32-rc",
+  "version": "0.0.1",
+  "authors": {
+    "name": "Great Tomorrow",
+    "email": "gr82morozr@gmail.com"
+  },
+  "keywords": [
+    "NRF24",
+    "WiFi",
+    "Bluetooth",
+    "ESPNow"
+  ],
+  "description": "Wrapper library for various protocal remote",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gr82morozr/esp32-common"
+  },
+  "dependencies": [
+    {
+      "owner" :"nrf24",
+      "name" :"RF24",
+      "version" : "^1.4.2"
+    },
+    {  
+      "name": "esp32-pwm",
+      "version": "https://github.com/gr82morozr/esp32-common.git"
+    }
+
+  ],
+  "frameworks": "arduino",
+  "platforms": "*"
+}
