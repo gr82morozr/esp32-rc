@@ -8,7 +8,7 @@
 
 class ESP32_RC_ESPNOW : public ESP32RemoteControl {
   public:
-    ESP32_RC_ESPNOW(int role, int core=1,  bool debug_mode=false); 
+    ESP32_RC_ESPNOW(int role, int core=1, bool fast_mode=false, bool debug_mode=false); 
     void init(void) override;
     void connect(void) override;               // general wrapper to establish the connection
     void send(String data) override;           // only en-queue the message
@@ -58,7 +58,8 @@ class ESP32_RC_ESPNOW : public ESP32RemoteControl {
     void set_value(int *in_varible, int value);
     void get_value(int *in_varible, int *out_varible);
     void empty_queue(QueueHandle_t queue);
-    
+    bool en_queue(QueueHandle_t queue, Message *pmsg);
+    bool de_queue(QueueHandle_t queue, Message *pmsg);
 };
 
 

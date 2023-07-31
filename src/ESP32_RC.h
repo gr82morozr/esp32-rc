@@ -19,25 +19,29 @@ class ESP32RemoteControl : public Task {
     typedef void (*funcPtrType)(void); // a function pointer type
 
     // constructor
-    ESP32RemoteControl(int role, int core, bool debug_mode);   // role = _ROLE_CONTROLLER | _ROLE_EXECUTOR
+    ESP32RemoteControl(int role, int core, bool fast_mode, bool debug_mode);   // role = _ROLE_CONTROLLER | _ROLE_EXECUTOR
 
     // common functions
-    virtual void init(void)         = 0;     // general wrapper to init the RC configuration
-    virtual void connect(void)      = 0;    // general wrapper to establish the connection
-    virtual void send(String data)  = 0;    // general wrapper to send data
-    virtual String* recv(void)      = 0;    // general wrapper to receive data
+    virtual void init(void)               = 0;     // general wrapper to init the RC configuration
+    virtual void connect(void)            = 0;     // general wrapper to establish the connection
+    virtual void send(String data)        = 0;     // general wrapper to send data
+    virtual String* recv(void)            = 0;     // general wrapper to receive data
+    
     
 
-    funcPtrType custom_handler = nullptr;           // A Custom Exception Handler
+    void enable_fast(bool mode);                   // if mode==false, then disable, othewrise enable
+    void enable_debug(bool mode);                  // if mode==false, then disable, othewrise enable
 
-    void enable_debug(bool debug_mode);             // if mode==false, then disable, othewrise enable
+    funcPtrType custom_handler = nullptr;          // A Custom Exception Handler
 
 
   protected:
     // common settings
-    int role;                                // _ROLE_CONTROLLER or _ROLE_EXECUTOR  
-    int status;                               // connection status
-    bool debug_mode = false;
+    int role;                                      // _ROLE_CONTROLLER or _ROLE_EXECUTOR  
+    int status;                                    // connection status
+    bool fast_mode = false;                        // enable or disable quick mode
+    bool debug_mode = false;                       // enable or disable debug mode
+
 
     void debug(String func_name, String message) ;        // Output debug info
     void raise_error(String func_name, String message) ;  // Common method to raise error.

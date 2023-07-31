@@ -3,7 +3,7 @@
 
 
 
-ESP32RemoteControl::ESP32RemoteControl(int role, int core, bool debug_mode) {
+ESP32RemoteControl::ESP32RemoteControl(int role, int core, bool fast_mode, bool debug_mode) {
   Task::setCore(core);
 
 
@@ -17,8 +17,9 @@ ESP32RemoteControl::ESP32RemoteControl(int role, int core, bool debug_mode) {
     Serial.begin(115200);
     this->is_serial_set = true;
   }
-  
-  this->debug_mode = debug_mode;
+
+  enable_fast(fast_mode);
+  enable_debug(debug_mode);
 
 }
 
@@ -50,6 +51,9 @@ void ESP32RemoteControl::enable_debug(bool mode) {
   this->debug_mode=mode;
 }
 
+void ESP32RemoteControl::enable_fast(bool mode) {
+  this->fast_mode=mode;
+}
 
 String ESP32RemoteControl::format_time(unsigned long ms) {
   // Calculate hours, minutes, seconds, and milliseconds

@@ -11,7 +11,7 @@ ESP32_RC_ESPNOW* ESP32_RC_ESPNOW::instance = nullptr;
  * For ESPNOW, the role value is ignored.
  *  
  */
-ESP32_RC_ESPNOW::ESP32_RC_ESPNOW(int role, int core, bool debug_mode) : ESP32RemoteControl(role, core, debug_mode) {
+ESP32_RC_ESPNOW::ESP32_RC_ESPNOW(int role, int core, bool fast_mode, bool debug_mode) : ESP32RemoteControl(role, core, fast_mode, debug_mode) {
   ESP32_RC_ESPNOW::instance = this;
 }
 
@@ -123,10 +123,19 @@ void ESP32_RC_ESPNOW::get_value(int *in_varible, int *out_varible) {
 
 void ESP32_RC_ESPNOW::empty_queue(QueueHandle_t queue) {
   Message msg;
-  while(xQueueReceive(queue, &msg, (TickType_t) 10) == pdPASS){
+  while(de_queue(queue, &msg) == pdPASS){
     // do nothing.
   }
 }
+
+bool ESP32_RC_ESPNOW::en_queue(QueueHandle_t queue,  Message *pmsg) {
+  return (xQueueSend(queue, pmsg, ( TickType_t ) 10) == pdPASS);
+};
+
+bool ESP32_RC_ESPNOW::de_queue(QueueHandle_t queue,  Message *pmsg) {
+  return (xQueueReceive(queue, pmsg, ( TickType_t ) 10) == pdPASS);
+};
+
 
 void ESP32_RC_ESPNOW::pair_peer(const uint8_t *mac_addr) {
   memcpy( &peer.peer_addr, mac_addr, ESP_NOW_ETH_ALEN );
@@ -154,19 +163,29 @@ void ESP32_RC_ESPNOW::unpair_peer(const uint8_t *mac_addr) {
 
 void ESP32_RC_ESPNOW::send(String data) {
   int status = 0;
-  while (true) {
-    // make sure handshake is completed successfully, then perform send
-    get_value(&handshake_status, &status);
-
-    if( get_queue_depth(send_queue) < _RC_QUEUE_DEPTH && status == _STATUS_HSHK_OK ) {
-      Message msg;
-      msg.length = data.length() < _MAX_MSG_LEN ? data.length() : _MAX_MSG_LEN;
-      data.toCharArray((char*)msg.data, msg.length + 1);
-      xQueueSend(send_queue, &msg, ( TickType_t ) 10);
-      send_metric.in_count ++;
-      return;
-    } else {
-      vTaskDelay(pdMS_TO_TICKS(int( 1000/_ESPNOW_DATE_RATE ))); 
+  Message msg;
+  get_value(&handshake_status, &status);
+  if (fast_mode) {
+    if (status != _STATUS_HSHK_OK) { return; }
+    if (get_queue_depth(send_queue) >= _RC_QUEUE_DEPTH ) {
+      de_queue(send_queue, &msg);
+      send_metric.out_count --;
+    }
+    msg = create_message(data);
+    en_queue(send_queue, &msg);
+    send_metric.in_count ++;
+    return;      
+  } else {
+    while (true) {
+      // make sure handshake is completed successfully, then perform send
+      if( get_queue_depth(send_queue) < _RC_QUEUE_DEPTH && status == _STATUS_HSHK_OK ) {
+        msg = create_message(data);
+        en_queue(send_queue, &msg);
+        send_metric.in_count ++;
+        return;
+      } else {
+        vTaskDelay(pdMS_TO_TICKS(int( 1000/_ESPNOW_DATE_RATE ))); 
+      }
     }
   }
 }
@@ -337,8 +356,7 @@ void ESP32_RC_ESPNOW::on_datasent(const uint8_t *mac_addr, esp_now_send_status_t
     //_DEBUG_("to (" + mac2str(mac_addr) + ") Success.");
   } else {
     set_value(&send_status, _STATUS_SEND_ERR);
-    _DEBUG_(String(send_status));
-    _DEBUG_("to (" + mac2str(mac_addr) + ") Failed.  status = " + String (op_status));
+    //_DEBUG_("to (" + mac2str(mac_addr) + ") Failed.  status = " + String (op_status));
   }
 }
 

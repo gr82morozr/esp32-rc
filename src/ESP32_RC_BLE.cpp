@@ -112,7 +112,7 @@ class Advertise_DeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
  * ================================================================
  */
 
-ESP32_RC_BLE::ESP32_RC_BLE(int role, int core, bool debug_mode) : ESP32RemoteControl(role, core, debug_mode) {
+ESP32_RC_BLE::ESP32_RC_BLE(int role, int core, bool fast_mode, bool debug_mode) : ESP32RemoteControl(role, core, fast_mode, debug_mode) {
   //ESP32_RC_ESPNOW::instance = this;
 
   Serial.begin(SERIAL_BAUD_RATE);
