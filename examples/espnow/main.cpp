@@ -8,10 +8,11 @@
 */
 
 
-ESP32_RC_ESPNOW rc_controller(_ROLE_CONTROLLER, 1, true, false);
+ESP32_RC_ESPNOW rc_controller(_ROLE_CONTROLLER, false, true);
 unsigned long count = 0; 
 
 void setup() {
+  pinMode(BUILTIN_LED, OUTPUT);
   rc_controller.init();
   rc_controller.connect();
 }
@@ -28,7 +29,7 @@ void loop() {
   total_bytes += message.length();
   rc_controller.send(message);
   recv_data = rc_controller.recv();
-  vTaskDelay(pdMS_TO_TICKS(100));
+  //vTaskDelay(pdMS_TO_TICKS(10));
   if (count % cycle_count == 0) {
     unsigned long time_taken = millis() - start_time;
     Serial.println(String(count) + " : " + String((float)int(time_taken/cycle_count*100)/100) + " : " + String(int(total_bytes/time_taken * 1000)) );

@@ -84,9 +84,3 @@ class ESP32_RC_ESPNOW : public ESP32RemoteControl {
 };
 
 
-
-// To do:
-// 1 - add reliable mode, to make sure every message is sent or received.
-//     in non-reliable mode, messages are dropped when queue is full.
-//     
-
