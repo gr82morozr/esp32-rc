@@ -53,8 +53,8 @@ class ESP32RemoteControl : public Task {
 
     void debug(String func_name, String message) ;        // Output debug info
     void raise_error(String func_name, String message) ;  // Common method to raise error.
-    String mac2str(const uint8_t *mac_addr) ; // Convert MAC address to String
-    int get_queue_depth(QueueHandle_t queue);    
+    String mac2str(const uint8_t *mac_addr) ;             // Convert MAC address to String
+    int get_queue_depth(QueueHandle_t queue);             // get queue depth
     
   
   private :

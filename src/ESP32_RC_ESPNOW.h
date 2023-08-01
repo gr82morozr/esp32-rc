@@ -47,6 +47,7 @@ class ESP32_RC_ESPNOW : public ESP32RemoteControl {
     SemaphoreHandle_t mutex;                   // for locking
     int handshake_status;                      // keep track of handshake status 
     int send_status;                           // keep track of send status 
+
     static ESP32_RC_ESPNOW* instance;
     static uint8_t broadcast_addr[6];
 
@@ -58,7 +59,6 @@ class ESP32_RC_ESPNOW : public ESP32RemoteControl {
     TimerHandle_t heartbeat_timer;
     static void send_timer_callback(TimerHandle_t xTimer); 
     static void heartbeat_timer_callback(TimerHandle_t xTimer); 
-    
 
     void pair_peer(const uint8_t *mac_addr);   // ESPNOW - pairing peer
     void unpair_peer(const uint8_t *mac_addr); // ESPNOW - un-pairing peer
@@ -69,16 +69,16 @@ class ESP32_RC_ESPNOW : public ESP32RemoteControl {
 
     static void static_on_datasent(const uint8_t *mac_addr, esp_now_send_status_t status);
     static void static_on_datarecv(const uint8_t *mac_addr, const uint8_t *data, int data_len);
-
     void on_datasent(const uint8_t *mac_addr, esp_now_send_status_t status) ;
     void on_datarecv(const uint8_t *mac_addr, const uint8_t *data, int data_len);
 
     Message create_message(String data);       // convert gaven String to Message
     String extract_message(Message msg);       // extract Message data to String
     
-    void set_value(int *in_varible, int value);
-    void get_value(int *in_varible, int *out_varible);
-    void empty_queue(QueueHandle_t queue);
+    void set_value(int *in_varible, int value);           // thread-safe to set varible 
+    void get_value(int *in_varible, int *out_varible);    // thread-safe to get varible 
+
+    void empty_queue(QueueHandle_t queue);                // clean up all messages in queue
     bool en_queue(QueueHandle_t queue, Message *pmsg);
     bool de_queue(QueueHandle_t queue, Message *pmsg);
 };
