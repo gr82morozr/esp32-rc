@@ -11,10 +11,14 @@ ESP32_RC_ESPNOW* ESP32_RC_ESPNOW::instance = nullptr;
  * For ESPNOW, the role value is ignored.
  *  
  */
-ESP32_RC_ESPNOW::ESP32_RC_ESPNOW(int role, int core, bool fast_mode, bool debug_mode) : ESP32RemoteControl(role, core, fast_mode, debug_mode) {
+ESP32_RC_ESPNOW::ESP32_RC_ESPNOW(int role, bool fast_mode, bool debug_mode) : ESP32RemoteControl(role, fast_mode, debug_mode) {
   ESP32_RC_ESPNOW::instance = this;
 }
 
+ESP32_RC_ESPNOW::~ESP32_RC_ESPNOW() {
+    xTimerStop(send_timer, 0);
+    xTimerDelete(send_timer, 0);
+}
 /* 
  * ========================================================
  * init - Override 
@@ -51,12 +55,19 @@ void ESP32_RC_ESPNOW::init(void)  {
   // Create queues
   send_queue = xQueueCreate(_RC_QUEUE_DEPTH, sizeof(Message));
   recv_queue = xQueueCreate(_RC_QUEUE_DEPTH, sizeof(Message));
+  if (send_queue == NULL || recv_queue == NULL) {
+    _ERROR_("Failed to create queues.");
+  }
 
   // Create the mutex
   mutex = xSemaphoreCreateMutex();
 
-  if (send_queue == NULL || recv_queue == NULL) {
-    _ERROR_("Failed to create queues.");
+  // Create Timer
+  send_timer = xTimerCreate("Timer", pdMS_TO_TICKS( int(1000/_ESPNOW_DATE_RATE) ), pdTRUE, (void*)0, send_timer_callback);
+  heartbeat_timer = xTimerCreate("Timer", pdMS_TO_TICKS(1000),                     pdTRUE, (void*)0, heartbeat_timer_callback);
+
+  if (send_timer == NULL || heartbeat_timer == NULL) {
+    _ERROR_("Failed to create timer");
   }
 
   // Register
@@ -88,9 +99,25 @@ void ESP32_RC_ESPNOW::connect(void) {
   // start processing the send message queue.
   set_value(&send_status, _STATUS_SEND_READY);
   
-  start(); 
+  //start(); 
+  xTimerStart(send_timer, 0);
+  xTimerStart(heartbeat_timer, 0);
   _DEBUG_("Success.");
 }
+
+
+void ESP32_RC_ESPNOW::send_timer_callback(TimerHandle_t xTimer) {
+  //ESP32_RC_ESPNOW* this_instance = static_cast<ESP32_RC_ESPNOW*>(pvTimerGetTimerID(xTimer));
+  instance->send_queue_msg();
+}
+
+void ESP32_RC_ESPNOW::heartbeat_timer_callback(TimerHandle_t xTimer) {
+  instance->op_send(instance->create_message(_HEARTBEAT_MSG));
+  digitalWrite(BUILTIN_LED, HIGH);
+}
+
+
+
 
 /* 
  * ========================================================
@@ -262,6 +289,7 @@ bool ESP32_RC_ESPNOW::op_send(Message msg) {
  * ========================================================
  */
 void ESP32_RC_ESPNOW::run(void* data) {
+  
   TickType_t xlast_waketime;
   const TickType_t xfreq = pdMS_TO_TICKS(1000/_ESPNOW_DATE_RATE); 
 
@@ -277,6 +305,8 @@ void ESP32_RC_ESPNOW::run(void* data) {
       _DEBUG_("");
     }
   }
+  
+  
 }
 
 /* 
@@ -388,6 +418,18 @@ void ESP32_RC_ESPNOW::on_datarecv(const uint8_t *mac_addr, const uint8_t *data, 
     empty_queue(recv_queue);
     set_value(&handshake_status, _STATUS_HSHK_OK);
     return;
+  }
+
+  // received heart beat 
+  if (data_recv_str == _HEARTBEAT_MSG) {
+    op_send(create_message(_HEARTBEAT_ACK_MSG));
+    return ;
+  }
+
+  // received heart beat 
+  if (data_recv_str == _HEARTBEAT_ACK_MSG) {
+    digitalWrite(BUILTIN_LED,LOW);
+    return ;
   }
 
   // regular message

@@ -66,7 +66,7 @@
 /* =========   ESPNOW  Settings ========= */
 #define _ESPNOW_CHANNEL       2
 #define _ESPNOW_OUTPUT_POWER  82                        // [0, 82] representing [0, 20.5]dBm
-#define _ESPNOW_DATE_RATE     50                        // X messages/second , better <=100
+#define _ESPNOW_DATE_RATE     100                        // X messages/second , better <=100
 #define _RC_QUEUE_DEPTH       int(_ESPNOW_DATE_RATE/2)  // keep messages of 0.5s only
 
 

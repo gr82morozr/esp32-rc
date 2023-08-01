@@ -3,9 +3,7 @@
 
 
 
-ESP32RemoteControl::ESP32RemoteControl(int role, int core, bool fast_mode, bool debug_mode) {
-  Task::setCore(core);
-
+ESP32RemoteControl::ESP32RemoteControl(int role, bool fast_mode, bool debug_mode) {
 
   // _ROLE_CONTROLLER or _ROLE_EXECUTOR
   if (role != _ROLE_CONTROLLER && role !=_ROLE_EXECUTOR) {

@@ -5,10 +5,26 @@
 #include <esp_wifi.h>
 #include <WiFi.h>
 
-
+/*
+ *
+ * ESPNOW Class
+ * 
+ * Bi-directional communication via ESPNOW
+ * 
+ * Note:
+ *  role : this is un-necessary for ESPNOW.
+ *  fast_mode = false:  The send process is blocking when send_queue is full. This ensures the message delivery.
+ *  fast_mode = true:   The send process is non-blocking when send_queue is full. The first message of send_queue will 
+ *                     be removed and then en-queue the new messaage. This is to ensure the quick response of clinet, not getting blocked.
+ *                          
+ * 
+ * 
+ *
+ */
 class ESP32_RC_ESPNOW : public ESP32RemoteControl {
   public:
-    ESP32_RC_ESPNOW(int role, int core=1, bool fast_mode=false, bool debug_mode=false); 
+    ESP32_RC_ESPNOW(int role, bool fast_mode=false, bool debug_mode=false); 
+    ~ESP32_RC_ESPNOW();
     void init(void) override;
     void connect(void) override;               // general wrapper to establish the connection
     void send(String data) override;           // only en-queue the message
@@ -37,7 +53,12 @@ class ESP32_RC_ESPNOW : public ESP32RemoteControl {
     esp_now_peer_info_t peer;
     QueueHandle_t send_queue;
 	  QueueHandle_t recv_queue;
-
+ 
+    TimerHandle_t send_timer;
+    TimerHandle_t heartbeat_timer;
+    static void send_timer_callback(TimerHandle_t xTimer); 
+    static void heartbeat_timer_callback(TimerHandle_t xTimer); 
+    
 
     void pair_peer(const uint8_t *mac_addr);   // ESPNOW - pairing peer
     void unpair_peer(const uint8_t *mac_addr); // ESPNOW - un-pairing peer

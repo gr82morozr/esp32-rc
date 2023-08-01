@@ -61,7 +61,7 @@
 
 class ESP32_RC_BLE : public ESP32RemoteControl {
   public:
-    ESP32_RC_BLE(int role, int core=1, bool fast_mode=false, bool debug_mode=false); 
+    ESP32_RC_BLE(int role, bool fast_mode=false, bool debug_mode=false); 
     void init(void) override;
     void connect(void) override;               // general wrapper to establish the connection
     void send(String data) override;           // only en-queue the message

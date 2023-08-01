@@ -2,13 +2,22 @@
 #include <Arduino.h>
 #include <ESP32_Common.h>
 #include "Task/Task.h"
+#include <freertos/timers.h>
 #include <queue>
 
 
 /*
  *
  * Remote Control Library
- *
+ * 
+ * ESP32RemoteControl : Abstract Class
+ * Support below protocols :
+ * - ESPNOW
+ * 
+ * - BLE (to do)
+ * - Bluetooth Serial (to do)
+ * - Wifi (to do)
+ * - NRD24 (to do)
  *
 */
 
@@ -19,7 +28,7 @@ class ESP32RemoteControl : public Task {
     typedef void (*funcPtrType)(void); // a function pointer type
 
     // constructor
-    ESP32RemoteControl(int role, int core, bool fast_mode, bool debug_mode);   // role = _ROLE_CONTROLLER | _ROLE_EXECUTOR
+    ESP32RemoteControl(int role, bool fast_mode, bool debug_mode);   // role = _ROLE_CONTROLLER | _ROLE_EXECUTOR
 
     // common functions
     virtual void init(void)               = 0;     // general wrapper to init the RC configuration
@@ -27,12 +36,11 @@ class ESP32RemoteControl : public Task {
     virtual void send(String data)        = 0;     // general wrapper to send data
     virtual String* recv(void)            = 0;     // general wrapper to receive data
     
-    
-
     void enable_fast(bool mode);                   // if mode==false, then disable, othewrise enable
     void enable_debug(bool mode);                  // if mode==false, then disable, othewrise enable
 
-    funcPtrType custom_handler = nullptr;          // A Custom Exception Handler
+    funcPtrType custom_handler = nullptr;          // A Custom Exception Handler.
+                                                   // For example : beeping, LED blinking... etc
 
 
   protected:
