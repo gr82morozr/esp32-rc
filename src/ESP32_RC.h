@@ -1,7 +1,7 @@
 #pragma once
 #include <Arduino.h>
-#include <ESP32_Common.h>
-#include "Task/Task.h"
+#include <ESP32_RC_Common.h>
+#include <Task/Task.h>
 #include <freertos/timers.h>
 #include <queue>
 
@@ -33,8 +33,8 @@ class ESP32RemoteControl : public Task {
     // common functions
     virtual void init(void)               = 0;     // general wrapper to init the RC configuration
     virtual void connect(void)            = 0;     // general wrapper to establish the connection
-    virtual void send(String data)        = 0;     // general wrapper to send data
-    virtual String* recv(void)            = 0;     // general wrapper to receive data
+    virtual void send(Message data)       = 0;     // general wrapper to send data
+    virtual Message recv(void)            = 0;     // general wrapper to receive data
     
     void enable_fast(bool mode);                   // if mode==false, then disable, othewrise enable
     void enable_debug(bool mode);                  // if mode==false, then disable, othewrise enable

@@ -1,3 +1,6 @@
+#include <ESP32_RC_Message.h>
+
+
 /*
   ESP32 Remote Control Wrapper Library
   - Description  
@@ -33,20 +36,9 @@
 
 */
 
-
-#define _STATUS_OK             1
-#define _STATUS_IN_PROG        100
-#define _STATUS_ERR            -1
-
-#define _STATUS_INIT_OK        1
-#define _STATUS_INIT_ERR      -1
-
-#define _STATUS_HSHK_OK        2
-#define _STATUS_HSHK_IN_PROG   200
+#define _STATUS_HSHK_OK       2
+#define _STATUS_HSHK_IN_PROG  200
 #define _STATUS_HSHK_ERR      -2
-
-#define _STATUS_CONN_OK        3
-#define _STATUS_CONN_ERR      -3
 
 #define _STATUS_SEND_READY    4
 #define _STATUS_SEND_DONE     5
@@ -65,9 +57,9 @@
 
 /* =========   ESPNOW  Settings ========= */
 #define _ESPNOW_CHANNEL       2
-#define _ESPNOW_OUTPUT_POWER  82                        // [0, 82] representing [0, 20.5]dBm
-#define _ESPNOW_DATE_RATE     100                        // X messages/second , better <=100
-#define _RC_QUEUE_DEPTH       int(_ESPNOW_DATE_RATE/2)  // keep messages of 0.5s only
+#define _ESPNOW_OUTPUT_POWER  82                          // [0, 82] representing [0, 20.5]dBm
+#define _ESPNOW_DATA_RATE     100                         // X messages/second , better <=100
+#define _RC_QUEUE_DEPTH       int(_ESPNOW_DATA_RATE/2)    // keep messages queue for max 0.5s only
 
 
 /* =========   BLE  Settings ========= */

@@ -17,11 +17,7 @@
     "url": "https://github.com/gr82morozr/esp32-rc.git"
   },
   "dependencies": [
-    {
-      "owner" :"nrf24",
-      "name" :"RF24",
-      "version" : "^1.4.2"
-    }
+   
   ],
   "frameworks": "arduino",
   "platforms": "*"

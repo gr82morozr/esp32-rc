@@ -63,7 +63,7 @@ void ESP32_RC_ESPNOW::init(void)  {
   mutex = xSemaphoreCreateMutex();
 
   // Create Timer
-  send_timer = xTimerCreate("Timer", pdMS_TO_TICKS( int(1000/_ESPNOW_DATE_RATE) ), pdTRUE, (void*)0, send_timer_callback);
+  send_timer = xTimerCreate("Timer", pdMS_TO_TICKS( int(1000/_ESPNOW_DATA_RATE) ), pdTRUE, (void*)0, send_timer_callback);
   heartbeat_timer = xTimerCreate("Timer", pdMS_TO_TICKS(1000),                     pdTRUE, (void*)0, heartbeat_timer_callback);
 
   if (send_timer == NULL || heartbeat_timer == NULL) {
@@ -112,7 +112,7 @@ void ESP32_RC_ESPNOW::send_timer_callback(TimerHandle_t xTimer) {
 }
 
 void ESP32_RC_ESPNOW::heartbeat_timer_callback(TimerHandle_t xTimer) {
-  instance->op_send(instance->create_message(_HEARTBEAT_MSG));
+  instance->op_send(instance->create_sys_msg(_HEARTBEAT_MSG));
   digitalWrite(BUILTIN_LED, HIGH);
 }
 
@@ -125,15 +125,17 @@ void ESP32_RC_ESPNOW::heartbeat_timer_callback(TimerHandle_t xTimer) {
  * ========================================================
  */
 
-ESP32_RC_ESPNOW::Message ESP32_RC_ESPNOW::create_message(String data) {
-  ESP32_RC_ESPNOW::Message  msg;
-  msg.length = data.length() < _MAX_MSG_LEN ? data.length() : _MAX_MSG_LEN;
-  data.toCharArray((char*)msg.data, msg.length + 1);
+Message ESP32_RC_ESPNOW::create_sys_msg(String data) {
+  Message msg;
+  strncpy(msg.sys, data.c_str(), sizeof(msg.sys) - 1);
+  msg.sys[sizeof(msg.sys) - 1] = '\0';
+  msg.is_set = true;
   return msg;
 }
 
-String ESP32_RC_ESPNOW::extract_message(Message msg) {
-  return ((String) ((char*)msg.data)).substring(0,msg.length);
+
+String ESP32_RC_ESPNOW::extract_sys_msg(const Message &msg) {
+  return String(msg.sys);
 }
 
 void ESP32_RC_ESPNOW::set_value(int *in_varible, int value) {
@@ -160,6 +162,7 @@ bool ESP32_RC_ESPNOW::en_queue(QueueHandle_t queue,  Message *pmsg) {
 };
 
 bool ESP32_RC_ESPNOW::de_queue(QueueHandle_t queue,  Message *pmsg) {
+  if (pmsg == nullptr) return false;
   return (xQueueReceive(queue, pmsg, ( TickType_t ) 10) == pdPASS);
 };
 
@@ -188,30 +191,29 @@ void ESP32_RC_ESPNOW::unpair_peer(const uint8_t *mac_addr) {
  * ========================================================
  */
 
-void ESP32_RC_ESPNOW::send(String data) {
+void ESP32_RC_ESPNOW::send(Message data) {
   int status = 0;
-  Message msg;
   get_value(&handshake_status, &status);
   if (fast_mode) {
     if (status != _STATUS_HSHK_OK) { return; }
     if (get_queue_depth(send_queue) >= _RC_QUEUE_DEPTH ) {
+      Message msg;
       de_queue(send_queue, &msg);
       send_metric.out_count --;
     }
-    msg = create_message(data);
-    en_queue(send_queue, &msg);
+    en_queue(send_queue, &data);
     send_metric.in_count ++;
     return;      
   } else {
     while (true) {
       // make sure handshake is completed successfully, then perform send
       if( get_queue_depth(send_queue) < _RC_QUEUE_DEPTH && status == _STATUS_HSHK_OK ) {
-        msg = create_message(data);
-        en_queue(send_queue, &msg);
+        //msg = create_sys_msg(data);
+        en_queue(send_queue, &data);
         send_metric.in_count ++;
         return;
       } else {
-        vTaskDelay(pdMS_TO_TICKS(int( 1000/_ESPNOW_DATE_RATE ))); 
+        vTaskDelay(pdMS_TO_TICKS(int( 1000/_ESPNOW_DATA_RATE ))); 
       }
     }
   }
@@ -233,19 +235,20 @@ void ESP32_RC_ESPNOW::send_queue_msg() {
   */
 
   // if send_queue empty, then done
-  // only wait for while when the queue is empty.
+  // only wait for new messages while when the queue is empty.
   if (get_queue_depth(send_queue) == 0 ) {
-    vTaskDelay(pdMS_TO_TICKS( int( 1000/_ESPNOW_DATE_RATE/2 ) )); 
+    vTaskDelay(pdMS_TO_TICKS( int( 1000/_ESPNOW_DATA_RATE/2 ) )); 
     return;
   }
 
-  // start sending process...
+  // start sending process ...
   long start_time = millis();
-  Message msg =  { {}, 0 };
+  Message msg =  {};
   while (millis () - start_time < 2000) {
-    // peek the message in send_queue
-    if (msg.length == 0) {
+    // peek the message in send_queue, ** not committed to de-queue **
+    if ( ! msg.is_set ) {
       if (xQueuePeek(send_queue, &msg, ( TickType_t ) 10) == pdTRUE) { 
+        msg.is_set  = true;
       } else {
         continue;
       } 
@@ -263,6 +266,7 @@ void ESP32_RC_ESPNOW::send_queue_msg() {
 
       if (status == _STATUS_SEND_DONE) { // all good.
         xQueueReceive(send_queue, &msg, ( TickType_t ) 10);  // de-queue the message
+        msg.is_set  = true;
         send_metric.out_count ++;
         set_value(&send_status, _STATUS_SEND_READY);
         return; 
@@ -277,11 +281,17 @@ void ESP32_RC_ESPNOW::send_queue_msg() {
   
 }
 
+/*
 bool ESP32_RC_ESPNOW::op_send(Message msg) {
   set_value(&send_status, _STATUS_SEND_IN_PROG);
   return (esp_now_send(peer.peer_addr, msg.data, msg.length) == ESP_OK);
 }
+*/
 
+bool ESP32_RC_ESPNOW::op_send(Message msg) {
+  set_value(&send_status, _STATUS_SEND_IN_PROG);
+  return (esp_now_send(peer.peer_addr, (uint8_t *)&msg, sizeof(Message)) == ESP_OK);
+}
 
 /* 
  * ========================================================
@@ -291,7 +301,7 @@ bool ESP32_RC_ESPNOW::op_send(Message msg) {
 void ESP32_RC_ESPNOW::run(void* data) {
   
   TickType_t xlast_waketime;
-  const TickType_t xfreq = pdMS_TO_TICKS(1000/_ESPNOW_DATE_RATE); 
+  const TickType_t xfreq = pdMS_TO_TICKS(1000/_ESPNOW_DATA_RATE); 
 
   unsigned long count = 0;
   xlast_waketime = xTaskGetTickCount();
@@ -299,7 +309,7 @@ void ESP32_RC_ESPNOW::run(void* data) {
     vTaskDelayUntil( &xlast_waketime, xfreq );
     send_queue_msg();
     count ++;
-    if (count % _ESPNOW_DATE_RATE == 0) {
+    if (count % _ESPNOW_DATA_RATE == 0) {
       _DEBUG_("Send : => " + String(send_metric.in_count) + " => Q ("+ String(get_queue_depth(send_queue)) + ") => "  + String(send_metric.out_count)  + " : Err = " + String(send_metric.err_count) );
       _DEBUG_("Recv : => " + String(recv_metric.in_count) + " => Q ("+ String(get_queue_depth(recv_queue)) + ") => " +  String(recv_metric.out_count));
       _DEBUG_("");
@@ -314,17 +324,15 @@ void ESP32_RC_ESPNOW::run(void* data) {
  * recv - Override 
  * ========================================================
  */
-String* ESP32_RC_ESPNOW::recv(void){
-  static String data;
+Message ESP32_RC_ESPNOW::recv(void) {
   Message msg;
   if (get_queue_depth(recv_queue) > 0) {
     if (xQueueReceive(recv_queue, &msg, ( TickType_t ) 10) == pdTRUE) {
-      data = extract_message(msg);
       recv_metric.out_count ++;
-      return &data;
+      return msg;
     }
   } 
-  return NULL;
+  return {};
 }
 
 
@@ -345,7 +353,7 @@ bool ESP32_RC_ESPNOW::handshake() {
 
   // Send broadcast
   pair_peer(broadcast_addr);
-  op_send(create_message(_HANDSHAKE_MSG));
+  op_send(create_sys_msg(_HANDSHAKE_MSG));
   unpair_peer(broadcast_addr);
 
   
@@ -390,6 +398,65 @@ void ESP32_RC_ESPNOW::on_datasent(const uint8_t *mac_addr, esp_now_send_status_t
   }
 }
 
+
+
+void ESP32_RC_ESPNOW::on_datarecv(const uint8_t *mac_addr, const uint8_t *data, int data_len) {
+  int status;
+  Message msg;
+  String data_recv_str;
+  
+  memcpy(&msg, data, sizeof(Message));
+  
+  
+  // Handshake Hello received and send Ack (priority #1)
+  if (strcmp(msg.sys, _HANDSHAKE_MSG) == 0) {
+    pair_peer(mac_addr);
+    op_send(create_sys_msg(_HANDSHAKE_ACK_MSG));
+    empty_queue(send_queue);
+    return;
+  }
+
+  // check if handshake in progress, and process Ack
+  get_value(&handshake_status, &status);
+  //_DEBUG_( String(status));
+  if (strcmp(msg.sys, _HANDSHAKE_ACK_MSG) == 0 && status == _STATUS_HSHK_IN_PROG) {
+    pair_peer(mac_addr);
+    empty_queue(send_queue);
+    empty_queue(recv_queue);
+    set_value(&handshake_status, _STATUS_HSHK_OK);
+    return;
+  }
+
+  // received heart beat 
+  if (strcmp(msg.sys, _HEARTBEAT_MSG) == 0 ) {
+    _DEBUG_(msg.sys);
+    op_send(create_sys_msg(_HEARTBEAT_ACK_MSG));
+    return ;
+  }
+
+  // received heart beat ack, heart beat cycle completed, then turn off the LED
+  if (strcmp(msg.sys, _HEARTBEAT_ACK_MSG) == 0 ) {
+    digitalWrite(BUILTIN_LED,LOW);
+    return ;
+  }
+
+  // regular message
+  if (status == _STATUS_HSHK_OK) {
+    recv_metric.in_count ++;
+    // add protection to de-queue front message to avoid queue overflow failure.
+    while (get_queue_depth(recv_queue) >= _RC_QUEUE_DEPTH )  { 
+      xQueueReceive(recv_queue, &msg, ( TickType_t ) 10); 
+    } 
+    // en-queue the message, ready for send
+    if (xQueueSend(recv_queue, &msg, ( TickType_t ) 10) != pdPASS ) {
+      _ERROR_("'recv_queue' depth = " + String(get_queue_depth(recv_queue)));
+    }
+  }
+}
+
+
+
+/*
 void ESP32_RC_ESPNOW::on_datarecv(const uint8_t *mac_addr, const uint8_t *data, int data_len) {
   int status;
   Message msg;
@@ -399,12 +466,12 @@ void ESP32_RC_ESPNOW::on_datarecv(const uint8_t *mac_addr, const uint8_t *data, 
   memcpy(msg.data, data, msg.length);
 
   // collect received data
-  data_recv_str = extract_message(msg);
+  data_recv_str = extract_sys_msg(msg);
   //_DEBUG_(data_recv_str);
   // Handshake Hello received and send Ack (priority #1)
   if (data_recv_str == _HANDSHAKE_MSG ) {   
     pair_peer(mac_addr);
-    op_send(create_message(_HANDSHAKE_ACK_MSG));
+    op_send(create_sys_msg(_HANDSHAKE_ACK_MSG));
     empty_queue(send_queue);
     return;
   }
@@ -422,7 +489,7 @@ void ESP32_RC_ESPNOW::on_datarecv(const uint8_t *mac_addr, const uint8_t *data, 
 
   // received heart beat 
   if (data_recv_str == _HEARTBEAT_MSG) {
-    op_send(create_message(_HEARTBEAT_ACK_MSG));
+    op_send(create_sys_msg(_HEARTBEAT_ACK_MSG));
     return ;
   }
 
@@ -444,4 +511,4 @@ void ESP32_RC_ESPNOW::on_datarecv(const uint8_t *mac_addr, const uint8_t *data, 
     }
   }
 }
-
+*/
