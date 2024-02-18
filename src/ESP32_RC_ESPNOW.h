@@ -29,6 +29,7 @@ class ESP32_RC_ESPNOW : public ESP32RemoteControl {
     void connect(void) override;                // general wrapper to establish the connection
     void send(Message data) override;           // only en-queue the message
     Message recv(void) override;                // general wrapper to receive data
+
   
   private:
     struct Metric {

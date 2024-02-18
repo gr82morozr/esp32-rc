@@ -1,9 +1,9 @@
 #include <Arduino.h>
 #include <ESP32_RC.h>
 
-
-
-ESP32RemoteControl::ESP32RemoteControl(int role, bool fast_mode, bool debug_mode) {
+// Constructor definition
+ESP32RemoteControl::ESP32RemoteControl (int role, bool fast_mode, bool debug_mode) 
+  : Task("ESP32RemoteControl") {
 
   // _ROLE_CONTROLLER or _ROLE_EXECUTOR
   if (role != _ROLE_CONTROLLER && role !=_ROLE_EXECUTOR) {
@@ -18,7 +18,7 @@ ESP32RemoteControl::ESP32RemoteControl(int role, bool fast_mode, bool debug_mode
 
   enable_fast(fast_mode);
   enable_debug(debug_mode);
-
+     
 }
 
 
@@ -85,13 +85,12 @@ void ESP32RemoteControl::raise_error(String func_name, String message) {
 
 // print debug logs
 void ESP32RemoteControl::debug(String func_name, String message) {
-  
-  if (this->is_serial_set == false) {
-    Serial.begin(115200);
-    this->is_serial_set = true;
-  }
- 
   if (this->debug_mode==true) {
+    if (this->is_serial_set == false) {
+      Serial.begin(115200);
+      this->is_serial_set = true;
+    }
+    
     if (!message.isEmpty()) {
       Serial.println( this->format_time() + " : " + func_name + " (" + String(xPortGetCoreID()) + ") : " + message);
     } else {

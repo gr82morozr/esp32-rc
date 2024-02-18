@@ -18,7 +18,7 @@ Task::Task(std::string taskName, uint16_t stackSize, uint8_t priority) {
 	m_priority  = priority;
 	m_taskData  = nullptr;
 	m_handle    = nullptr;
-	m_coreId    = 0;
+	m_coreId    = 1;
 } // Task
 
 Task::~Task() {

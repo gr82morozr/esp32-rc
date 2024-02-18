@@ -27,8 +27,10 @@ class ESP32RemoteControl : public Task {
     // pointer function 
     typedef void (*funcPtrType)(void); // a function pointer type
 
+        
     // constructor
     ESP32RemoteControl(int role, bool fast_mode, bool debug_mode);   // role = _ROLE_CONTROLLER | _ROLE_EXECUTOR
+    
 
     // common functions
     virtual void init(void)               = 0;     // general wrapper to init the RC configuration
@@ -41,7 +43,6 @@ class ESP32RemoteControl : public Task {
 
     funcPtrType custom_handler = nullptr;          // A Custom Exception Handler.
                                                    // For example : beeping, LED blinking... etc
-
 
   protected:
     // common settings

@@ -5,9 +5,9 @@
   ESP32 Remote Control Wrapper Library
   - Description  
 */
-#define _FUNC_NAME String(__func__) 
-#define _DEBUG_(msg) debug(_FUNC_NAME, (msg))
-#define _ERROR_(msg) raise_error(_FUNC_NAME, (msg))
+#define _FUNC_NAME      String(__func__) 
+#define _DEBUG_(msg)    debug(_FUNC_NAME, (msg))
+#define _ERROR_(msg)    raise_error(_FUNC_NAME, (msg))
 
 
 /* 
@@ -56,10 +56,11 @@
 
 
 /* =========   ESPNOW  Settings ========= */
-#define _ESPNOW_CHANNEL       2
-#define _ESPNOW_OUTPUT_POWER  82                          // [0, 82] representing [0, 20.5]dBm
-#define _ESPNOW_DATA_RATE     100                         // X messages/second , better <=100
-#define _RC_QUEUE_DEPTH       int(_ESPNOW_DATA_RATE/2)    // keep messages queue for max 0.5s only
+#define _ESPNOW_CHANNEL         2
+#define _ESPNOW_OUTPUT_POWER    82                          // [0, 82] representing [0, 20.5]dBm
+#define _ESPNOW_DATA_RATE       100                         // X messages/second , better <=100
+#define _ESPNOW_HEARTBEAT_RATE  0.5                         // X messages/second
+#define _RC_QUEUE_DEPTH         int(_ESPNOW_DATA_RATE/2)    // keep messages queue for max 0.5s only, if overflow, drop the older ones
 
 
 /* =========   BLE  Settings ========= */
